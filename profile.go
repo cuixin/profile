@@ -13,6 +13,18 @@ import (
 	"sync/atomic"
 )
 
+type logger interface {
+	Fatal(v ...interface{})
+	Fatalln(v ...interface{})
+	Fatalf(format string, v ...interface{})
+	Print(v ...interface{})
+	Printf(format string, v ...interface{})
+	Println(v ...interface{})
+}
+
+// Log export the Log to user could be define.
+var Log logger = log.New(os.Stderr, "", log.LstdFlags)
+
 // started counts the number of times Start has been called
 var started uint32
 
@@ -109,7 +121,7 @@ func Start(options ...func(*profile)) interface {
 	Stop()
 } {
 	if !atomic.CompareAndSwapUint32(&started, 0, 1) {
-		log.Fatal("profile: Start() already called")
+		Log.Fatal("profile: Start() already called")
 	}
 
 	var prof profile
@@ -125,7 +137,7 @@ func Start(options ...func(*profile)) interface {
 	}()
 
 	if err != nil {
-		log.Fatalf("profile: could not create initial output directory: %v", err)
+		Log.Fatalf("profile: could not create initial output directory: %v", err)
 	}
 
 	switch prof.mode {
@@ -133,7 +145,7 @@ func Start(options ...func(*profile)) interface {
 		fn := filepath.Join(path, "cpu.pprof")
 		f, err := os.Create(fn)
 		if err != nil {
-			log.Fatalf("profile: could not create cpu profile %q: %v", fn, err)
+			Log.Fatalf("profile: could not create cpu profile %q: %v", fn, err)
 		}
 		if !prof.quiet {
 			log.Printf("profile: cpu profiling enabled, %s", fn)
@@ -148,7 +160,7 @@ func Start(options ...func(*profile)) interface {
 		fn := filepath.Join(path, "mem.pprof")
 		f, err := os.Create(fn)
 		if err != nil {
-			log.Fatalf("profile: could not create memory profile %q: %v", fn, err)
+			Log.Fatalf("profile: could not create memory profile %q: %v", fn, err)
 		}
 		old := runtime.MemProfileRate
 		runtime.MemProfileRate = prof.memProfileRate
@@ -184,7 +196,7 @@ func Start(options ...func(*profile)) interface {
 			signal.Notify(c, os.Interrupt)
 			<-c
 
-			log.Println("profile: caught interrupt, stopping profiles")
+			Log.Println("profile: caught interrupt, stopping profiles")
 			prof.Stop()
 
 			os.Exit(0)
