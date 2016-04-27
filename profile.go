@@ -4,7 +4,7 @@ package profile
 
 import (
 	"io/ioutil"
-	"log"
+	stdlog "log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -23,10 +23,10 @@ type logger interface {
 }
 
 // Log export the Log to user could be define.
-var Log logger = log.New(os.Stderr, "", log.LstdFlags)
+var Log logger = stdlog.New(os.Stderr, "", stdlog.LstdFlags)
 
 // started counts the number of times Start has been called
-var started uint32
+// var started uint32
 
 const (
 	cpuMode = iota
@@ -120,9 +120,9 @@ func (p *profile) Stop() {
 func Start(options ...func(*profile)) interface {
 	Stop()
 } {
-	if !atomic.CompareAndSwapUint32(&started, 0, 1) {
-		Log.Fatal("profile: Start() already called")
-	}
+	// if !atomic.CompareAndSwapUint32(&started, 0, 1) {
+	//	Log.Fatal("profile: Start() already called")
+	// }
 
 	var prof profile
 	for _, option := range options {
@@ -148,7 +148,7 @@ func Start(options ...func(*profile)) interface {
 			Log.Fatalf("profile: could not create cpu profile %q: %v", fn, err)
 		}
 		if !prof.quiet {
-			log.Printf("profile: cpu profiling enabled, %s", fn)
+			Log.Printf("profile: cpu profiling enabled, %s", fn)
 		}
 		pprof.StartCPUProfile(f)
 		prof.closers = append(prof.closers, func() {
@@ -165,7 +165,7 @@ func Start(options ...func(*profile)) interface {
 		old := runtime.MemProfileRate
 		runtime.MemProfileRate = prof.memProfileRate
 		if !prof.quiet {
-			log.Printf("profile: memory profiling enabled (rate %d), %s", runtime.MemProfileRate, fn)
+			Log.Printf("profile: memory profiling enabled (rate %d), %s", runtime.MemProfileRate, fn)
 		}
 		prof.closers = append(prof.closers, func() {
 			pprof.Lookup("heap").WriteTo(f, 0)
@@ -177,11 +177,11 @@ func Start(options ...func(*profile)) interface {
 		fn := filepath.Join(path, "block.pprof")
 		f, err := os.Create(fn)
 		if err != nil {
-			log.Fatalf("profile: could not create block profile %q: %v", fn, err)
+			Log.Fatalf("profile: could not create block profile %q: %v", fn, err)
 		}
 		runtime.SetBlockProfileRate(1)
 		if !prof.quiet {
-			log.Printf("profile: block profiling enabled, %s", fn)
+			Log.Printf("profile: block profiling enabled, %s", fn)
 		}
 		prof.closers = append(prof.closers, func() {
 			pprof.Lookup("block").WriteTo(f, 0)
@@ -203,9 +203,9 @@ func Start(options ...func(*profile)) interface {
 		}()
 	}
 
-	prof.closers = append(prof.closers, func() {
-		atomic.SwapUint32(&started, 0)
-	})
+	// prof.closers = append(prof.closers, func() {
+	//	atomic.SwapUint32(&started, 0)
+	// })
 
 	return &prof
 }
